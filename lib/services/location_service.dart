@@ -1,15 +1,5 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-
-final locationServiceProvider = Provider<LocationService>((ref) {
-  return LocationService();
-});
-
-final positionStreamProvider = StreamProvider<Position>((ref) {
-  final service = ref.watch(locationServiceProvider);
-  return service.positionStream;
-});
 
 class LocationService {
   LocationService() {
@@ -17,7 +7,7 @@ class LocationService {
   }
 
   final StreamController<Position> _controller =
-  StreamController<Position>.broadcast();
+      StreamController<Position>.broadcast();
 
   Stream<Position> get positionStream => _controller.stream;
 

@@ -1,36 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart'; // TODO: use new APIs when refactoring state mgmt
 import 'package:manhunt/models/game_lobby.dart';
 import 'package:manhunt/models/game_player.dart';
 import 'package:manhunt/screens/map_screen.dart';
 import 'package:manhunt/services/auth_service.dart';
 import 'package:manhunt/services/lobby_service.dart';
+import 'package:provider/provider.dart';
 
-final lobbySearchProvider = StateProvider.autoDispose<String>((ref) => '');
-
-class LobbyScreen extends ConsumerStatefulWidget {
+class LobbyScreen extends StatefulWidget {
   const LobbyScreen({super.key});
 
   @override
-  ConsumerState<LobbyScreen> createState() => _LobbyScreenState();
+  State<LobbyScreen> createState() => _LobbyScreenState();
 }
 
-class _LobbyScreenState extends ConsumerState<LobbyScreen> {
+class _LobbyScreenState extends State<LobbyScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _search = '';
 
   @override
   Widget build(BuildContext context) {
-    final lobbiesAsync = ref.watch(lobbiesProvider);
-    final search = ref.watch(lobbySearchProvider);
+    final lobbiesStream = context.watch<LobbyService>().watchLobbies();
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('MiniManhunt'),
         actions: [
           IconButton(
-            onPressed: ref.read(authServiceProvider).signOut,
+            onPressed: () => context.read<AuthService>().signOut(),
             icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
           ),
@@ -41,7 +39,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => ref.read(lobbySearchProvider.notifier).state = value,
+              onChanged: (value) => setState(() => _search = value),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
                 hintText: 'Lobbynamen oder Host suchen…',
@@ -52,10 +50,18 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           ),
         ),
       ),
-      body: lobbiesAsync.when(
-        data: (lobbies) => _buildLobbyList(context, lobbies, search),
-        loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-        error: (err, _) => Center(child: Text('Lobbies Fehler: $err')),
+      body: StreamBuilder<List<GameLobby>>(
+        stream: lobbiesStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator.adaptive());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Lobbies Fehler: ${snapshot.error}'));
+          }
+          final lobbies = snapshot.data ?? [];
+          return _buildLobbyList(context, lobbies, _search);
+        },
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Padding(
@@ -112,9 +118,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   }
 
   Future<void> _joinLobby(String lobbyId) async {
-    final user = ref.read(authStateProvider).value;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final lobbyService = ref.read(lobbyServiceProvider);
+    final lobbyService = context.read<LobbyService>();
     final player = GamePlayer(
       uid: user.uid,
       displayName: user.uid.substring(0, 6),
@@ -127,12 +133,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ProviderScope(
-          overrides: [
-            lobbyIdProvider.overrideWithValue(lobbyId),
-          ],
-          child: const MapScreen(),
-        ),
+        builder: (_) => MapScreen(lobbyId: lobbyId),
       ),
     );
   }
@@ -155,7 +156,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             children: [
               Text(
                 'Lobby erstellen',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style:
+                    Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -185,9 +187,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        final user = ref.read(authStateProvider).value;
+                        final user = FirebaseAuth.instance.currentUser;
                         if (user == null) return;
-                        final lobbyService = ref.read(lobbyServiceProvider);
+                        final lobbyService = context.read<LobbyService>();
                         final lobbyId = await lobbyService.createLobby(
                           hostUid: user.uid,
                           name: nameController.text,
@@ -227,7 +229,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             children: [
               Text(
                 'Lobby beitreten',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style:
+                    Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -334,7 +337,8 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.explore_off_rounded, size: 80, color: Theme.of(context).colorScheme.primary),
+          Icon(Icons.explore_off_rounded, size: 80,
+              color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 16),
           const Text('Keine Lobbies in deiner Nähe.'),
           const SizedBox(height: 8),

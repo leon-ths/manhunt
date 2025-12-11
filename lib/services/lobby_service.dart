@@ -1,36 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manhunt/models/game_lobby.dart';
 import 'package:manhunt/models/game_player.dart';
 import 'package:uuid/uuid.dart';
-
-final _firestoreProvider = Provider<FirebaseFirestore>((_) => FirebaseFirestore.instance);
-
-final lobbyServiceProvider = Provider<LobbyService>((ref) {
-  final firestore = ref.watch(_firestoreProvider);
-  return LobbyService(firestore);
-});
-
-final lobbiesProvider = StreamProvider<List<GameLobby>>((ref) {
-  final firestore = ref.watch(_firestoreProvider);
-  return firestore.collection('lobbies').snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((doc) => GameLobby.fromMap(doc.id, doc.data()))
-            .toList(),
-      );
-});
-
-final lobbyPlayersProvider = StreamProvider.family<List<GamePlayer>, String>((ref, lobbyId) {
-  final firestore = ref.watch(_firestoreProvider);
-  return firestore
-      .collection('lobbies')
-      .doc(lobbyId)
-      .collection('players')
-      .snapshots()
-      .map(
-        (snapshot) => snapshot.docs.map((doc) => GamePlayer.fromMap(doc.data())).toList(),
-      );
-});
 
 class LobbyService {
   LobbyService(this._firestore);
@@ -88,5 +59,24 @@ class LobbyService {
         .doc(playerUid);
     await playerRef.update({'isHunter': isHunter});
   }
-}
 
+  Stream<List<GameLobby>> watchLobbies() {
+    return _firestore.collection('lobbies').snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => GameLobby.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  Stream<List<GamePlayer>> watchPlayers(String lobbyId) {
+    return _firestore
+        .collection('lobbies')
+        .doc(lobbyId)
+        .collection('players')
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => GamePlayer.fromMap(doc.data())).toList(),
+        );
+  }
+}
