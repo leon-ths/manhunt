@@ -9,6 +9,8 @@ class LobbyService {
   final FirebaseFirestore _firestore;
   final _uuid = const Uuid();
 
+  CollectionReference<Map<String, dynamic>> get _lobbyCollection => _firestore.collection('lobbies');
+
   Future<String> createLobby({
     required String hostUid,
     required String name,
@@ -16,23 +18,39 @@ class LobbyService {
     required double radiusMeters,
     required int durationMinutes,
     int pingIntervalMinutes = 5,
-    int speedhuntCooldownMinutes = 15,
+    int escapeMinutes = 2,
+    bool functionsEnabled = false,
+    String playAreaMode = 'circle',
+    List<GeoPoint>? polygon,
   }) async {
-    final lobbyRef = _firestore.collection('lobbies').doc();
-    final inviteCode = _uuid.v4().substring(0, 6).toUpperCase();
-    await lobbyRef.set({
+    if (name.trim().isEmpty) {
+      throw ArgumentError('Lobby benötigt einen Namen.');
+    }
+    if (radiusMeters <= 0) {
+      throw ArgumentError('Radius muss größer als 0 sein.');
+    }
+    if (durationMinutes <= 0) {
+      throw ArgumentError('Spielzeit muss größer als 0 sein.');
+    }
+    if (playAreaMode == 'polygon' && (polygon == null || polygon.length < 3)) {
+      throw ArgumentError('Polygon-Fläche benötigt mindestens drei Punkte.');
+    }
+    final doc = await _lobbyCollection.add({
       'hostUid': hostUid,
       'name': name,
-      'inviteCode': inviteCode,
-      'radiusMeters': radiusMeters,
       'center': center,
+      'radiusMeters': radiusMeters,
       'durationMinutes': durationMinutes,
       'pingIntervalMinutes': pingIntervalMinutes,
-      'speedhuntCooldownMinutes': speedhuntCooldownMinutes,
-      'createdAt': FieldValue.serverTimestamp(),
+      'escapeMinutes': escapeMinutes,
+      'functionsEnabled': functionsEnabled,
+      'playAreaMode': playAreaMode,
+      'polygon': polygon,
       'status': 'lobby',
+      'createdAt': FieldValue.serverTimestamp(),
+      'startedAt': null,
     });
-    return lobbyRef.id;
+    return doc.id;
   }
 
   Future<void> joinLobby({
@@ -61,12 +79,17 @@ class LobbyService {
   }
 
   Stream<List<GameLobby>> watchLobbies() {
-    return _firestore.collection('lobbies').snapshots().map(
+    return _lobbyCollection.snapshots().map(
           (snapshot) => snapshot.docs
               .map((doc) => GameLobby.fromMap(doc.id, doc.data()))
               .toList(),
         );
   }
+
+  Stream<GameLobby> watchLobby(String lobbyId) => _lobbyCollection
+      .doc(lobbyId)
+      .snapshots()
+      .map((doc) => GameLobby.fromMap(doc.id, doc.data()!));
 
   Stream<List<GamePlayer>> watchPlayers(String lobbyId) {
     return _firestore
@@ -78,5 +101,30 @@ class LobbyService {
           (snapshot) =>
               snapshot.docs.map((doc) => GamePlayer.fromMap(doc.data())).toList(),
         );
+  }
+
+  Future<void> leaveLobby({required String lobbyId, required String playerUid}) async {
+    final playerRef = _lobbyCollection.doc(lobbyId).collection('players').doc(playerUid);
+    await playerRef.delete();
+  }
+
+  Future<void> updateLobbySettings({
+    required String lobbyId,
+    required int pingIntervalMinutes,
+    required double radiusMeters,
+    required int escapeMinutes,
+  }) async {
+    await _lobbyCollection.doc(lobbyId).update({
+      'pingIntervalMinutes': pingIntervalMinutes,
+      'radiusMeters': radiusMeters,
+      'escapeMinutes': escapeMinutes,
+    });
+  }
+
+  Future<void> startLobby(String lobbyId) async {
+    await _lobbyCollection.doc(lobbyId).update({
+      'status': 'running',
+      'startedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

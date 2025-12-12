@@ -1,15 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  AuthService(this._firebaseAuth);
+  AuthService(this._firebaseAuth, this._firestore);
 
   final FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
-  Future<UserCredential> signInAnonymously() {
-    return _firebaseAuth.signInAnonymously();
-  }
+  Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
 
-  Future<UserCredential> signInWithEmail({
+  Future<void> signInWithEmail({
     required String email,
     required String password,
   }) {
@@ -19,17 +19,27 @@ class AuthService {
     );
   }
 
-  Future<UserCredential> registerWithEmail({
+  Future<void> registerWithEmail({
     required String email,
     required String password,
-  }) {
-    return _firebaseAuth.createUserWithEmailAndPassword(
+    required String username,
+  }) async {
+    final credential = await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    await credential.user?.updateDisplayName(username);
+    await _firestore.collection('users').doc(credential.user?.uid).set({
+      'username': username,
+      'usernameLower': username.toLowerCase(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'wins': 0,
+      'distanceMeters': 0,
+      'friends': <String>[],
+    });
   }
 
-  Future<void> signOut() async {
-    await _firebaseAuth.signOut();
-  }
+  Future<void> signOut() => _firebaseAuth.signOut();
+
+  Future<void> signInAnonymously() => _firebaseAuth.signInAnonymously();
 }

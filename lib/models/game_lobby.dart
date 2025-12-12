@@ -8,9 +8,13 @@ class GameLobby {
   final GeoPoint center;
   final int durationMinutes;
   final int pingIntervalMinutes;
-  final int speedhuntCooldownMinutes;
+  final int escapeMinutes;
+  final bool functionsEnabled;
+  final String playAreaMode;
+  final List<GeoPoint> polygon;
   final Timestamp createdAt;
   final String status; // lobby, running, finished
+  final Timestamp? startedAt;
 
   const GameLobby({
     required this.id,
@@ -20,10 +24,36 @@ class GameLobby {
     required this.center,
     required this.durationMinutes,
     required this.pingIntervalMinutes,
-    required this.speedhuntCooldownMinutes,
+    required this.escapeMinutes,
+    required this.functionsEnabled,
+    required this.playAreaMode,
+    required this.polygon,
     required this.createdAt,
     required this.status,
+    this.startedAt,
   });
+
+  factory GameLobby.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return GameLobby(
+      id: doc.id,
+      hostUid: data['hostUid'] as String,
+      name: data['name'] as String,
+      radiusMeters: (data['radiusMeters'] as num).toDouble(),
+      center: data['center'] as GeoPoint,
+      durationMinutes: (data['durationMinutes'] as num).toInt(),
+      pingIntervalMinutes: (data['pingIntervalMinutes'] as num?)?.toInt() ?? 5,
+      escapeMinutes: (data['escapeMinutes'] as num?)?.toInt() ?? 2,
+      functionsEnabled: data['functionsEnabled'] as bool? ?? false,
+      playAreaMode: data['playAreaMode'] as String? ?? 'circle',
+      polygon: ((data['polygon'] as List<dynamic>?) ?? [])
+          .map((p) => p as GeoPoint)
+          .toList(),
+      createdAt: data['createdAt'] as Timestamp,
+      status: data['status'] as String,
+      startedAt: data['startedAt'] as Timestamp?,
+    );
+  }
 
   factory GameLobby.fromMap(String id, Map<String, dynamic> data) {
     return GameLobby(
@@ -32,23 +62,17 @@ class GameLobby {
       name: data['name'] as String,
       radiusMeters: (data['radiusMeters'] as num).toDouble(),
       center: data['center'] as GeoPoint,
-      durationMinutes: data['durationMinutes'] as int,
-      pingIntervalMinutes: data['pingIntervalMinutes'] as int,
-      speedhuntCooldownMinutes: data['speedhuntCooldownMinutes'] as int,
+      durationMinutes: (data['durationMinutes'] as num).toInt(),
+      pingIntervalMinutes: (data['pingIntervalMinutes'] as num?)?.toInt() ?? 5,
+      escapeMinutes: (data['escapeMinutes'] as num?)?.toInt() ?? 2,
+      functionsEnabled: data['functionsEnabled'] as bool? ?? false,
+      playAreaMode: data['playAreaMode'] as String? ?? 'circle',
+      polygon: ((data['polygon'] as List<dynamic>?) ?? [])
+          .map((p) => p as GeoPoint)
+          .toList(),
       createdAt: data['createdAt'] as Timestamp,
       status: data['status'] as String,
+      startedAt: data['startedAt'] as Timestamp?,
     );
   }
-
-  Map<String, dynamic> toMap() => {
-        'hostUid': hostUid,
-        'name': name,
-        'radiusMeters': radiusMeters,
-        'center': center,
-        'durationMinutes': durationMinutes,
-        'pingIntervalMinutes': pingIntervalMinutes,
-        'speedhuntCooldownMinutes': speedhuntCooldownMinutes,
-        'createdAt': createdAt,
-        'status': status,
-      };
 }
