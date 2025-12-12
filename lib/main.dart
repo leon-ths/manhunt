@@ -74,7 +74,7 @@ class MiniManhuntApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -82,7 +82,7 @@ class MiniManhuntApp extends StatelessWidget {
             backgroundColor: neonPink,
             foregroundColor: Colors.white,
             elevation: 8,
-            shadowColor: neonPink.withOpacity(0.4),
+            shadowColor: neonPink.withValues(alpha: 0.4),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             textStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),

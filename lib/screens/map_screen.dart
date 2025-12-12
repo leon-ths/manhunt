@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:manhunt/models/game_player.dart';
 import 'package:manhunt/services/lobby_service.dart';
 import 'package:manhunt/services/location_service.dart';
+import 'package:manhunt/widgets/design_components.dart';
 import 'package:provider/provider.dart';
 
 class MapScreen extends StatefulWidget {
@@ -49,19 +50,15 @@ class _MapScreenState extends State<MapScreen> {
       _radiusMeters = (data['radiusMeters'] as num).toDouble();
       _pingIntervalMinutes = (data['pingIntervalMinutes'] as num?)?.toInt() ?? 5;
     });
-    // _startPingTimer(); // Ping Logik hier erstmal ausgeblendet für reines UI Fokus
+    // _startPingTimer();
   }
 
-  // ... (Hier würde deine bestehende Logik für Ping/Catch/Speedhunt stehen. Ich lasse sie der Übersicht halber drin) ...
-  // [Füge hier deine Methoden _startPingTimer, _sendSilentPing, _triggerSpeedhunt, _attemptCatch etc. aus dem alten Code ein]
-  // Damit der Code sauber bleibt, habe ich die UI-relevanten Teile unten stark überarbeitet.
-
-  // Dummy Catch Methode falls du sie noch nicht kopiert hast:
+  // Platzhalter für Game-Logik (Ping, Catch, Speedhunt)
   void _showCatchDialog(List<GamePlayer> players, Position hunterPos) {
-    // Deine Logik
+    // Implementierung deiner Catch-Logik hier
   }
   Future<void> _triggerSpeedhunt() async {
-    // Deine Logik
+    // Implementierung deiner Speedhunt-Logik hier
   }
 
   @override
@@ -72,15 +69,18 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // Unsichtbare AppBar für Back-Button Funktionalität
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: CircleAvatar(
-            backgroundColor: Colors.black54,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.8),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white10),
+            ),
             child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -90,7 +90,7 @@ class _MapScreenState extends State<MapScreen> {
         stream: locationService.positionStream,
         builder: (context, positionSnapshot) {
           if (!positionSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const ScreenBackground(child: Center(child: CircularProgressIndicator()));
           }
           final pos = positionSnapshot.data!;
 
@@ -100,16 +100,18 @@ class _MapScreenState extends State<MapScreen> {
               final players = playersSnapshot.data ?? [];
               return Stack(
                 children: [
-                  // 1. Die Karte (Abgedunkelt)
+                  // 1. Die Karte (Dark Tech Look)
                   FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
                       initialCenter: ll.LatLng(pos.latitude, pos.longitude),
                       initialZoom: 16,
-                      // Dunkles Karten-Design erzwingen durch Invertierung
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      ),
                     ),
                     children: [
-                      // DARK MODE HACK: Wir invertieren die Farben der Standard-Karte
+                      // Invertierungs-Filter für Dark Mode
                       ColorFiltered(
                         colorFilter: const ColorFilter.matrix([
                           -1, 0, 0, 0, 255, // Red invert
@@ -123,12 +125,13 @@ class _MapScreenState extends State<MapScreen> {
                           userAgentPackageName: 'cloud.tonhaeuser.manhunt',
                         ),
                       ),
-                      // Zweiter Filter um es grau und dunkel zu machen (Tech Look)
-                      const ColorFiltered(
+                      // Abdunklungs-Overlay
+                      ColorFiltered(
                         colorFilter: ColorFilter.mode(
-                          Color(0xBB000000), // Dunkles Overlay
+                          const Color(0xFF000000).withValues(alpha: 0.85),
                           BlendMode.darken,
                         ),
+                        child: Container(color: Colors.transparent), // Dummy child für Filter
                       ),
 
                       // Spielzone
@@ -138,9 +141,9 @@ class _MapScreenState extends State<MapScreen> {
                             point: _center,
                             radius: _radiusMeters,
                             useRadiusInMeter: true,
-                            color: Colors.green.withValues(alpha: 0.05),
-                            borderStrokeWidth: 2,
-                            borderColor: const Color(0xFF32D74B), // Neon Green
+                            color: const Color(0xFF32D74B).withValues(alpha: 0.05),
+                            borderStrokeWidth: 1,
+                            borderColor: const Color(0xFF32D74B).withValues(alpha: 0.5),
                           ),
                         ],
                       ),
@@ -150,29 +153,25 @@ class _MapScreenState extends State<MapScreen> {
                     ],
                   ),
 
-                  // 2. HUD Overlay (Oben)
+                  // 2. HUD Overlay (Oben) - Status
                   Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
-                        ),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+                    top: MediaQuery.of(context).padding.top + 10,
+                    right: 20,
+                    left: 80, // Platz lassen für Back Button
+                    child: TechCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatusChip(
-                              label: 'RUNNER: ${players.where((p) => !p.isHunter).length}',
+                          _StatusCounter(
+                              label: 'RUNNER',
+                              count: players.where((p) => !p.isHunter).length,
                               color: const Color(0xFF32D74B)
                           ),
-                          _buildStatusChip(
-                              label: 'HUNTER: ${players.where((p) => p.isHunter).length}',
+                          Container(width: 1, height: 24, color: Colors.white10),
+                          _StatusCounter(
+                              label: 'HUNTER',
+                              count: players.where((p) => p.isHunter).length,
                               color: const Color(0xFFFF2D55)
                           ),
                         ],
@@ -187,34 +186,48 @@ class _MapScreenState extends State<MapScreen> {
                     right: 20,
                     child: Row(
                       children: [
-                        FloatingActionButton(
-                          heroTag: 'speedhunt',
-                          backgroundColor: const Color(0xFF1C1C1E),
-                          foregroundColor: Colors.yellow,
-                          onPressed: _speedhuntLoading ? null : _triggerSpeedhunt,
-                          child: _speedhuntLoading ? const CircularProgressIndicator() : const Icon(Icons.flash_on),
+                        _TechFab(
+                          icon: Icons.flash_on,
+                          color: Colors.yellow,
+                          isLoading: _speedhuntLoading,
+                          onTap: _speedhuntLoading ? null : _triggerSpeedhunt,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF2D55),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFF2D55).withValues(alpha: 0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
                             ),
-                            onPressed: () => _showCatchDialog(players, pos),
-                            child: const Text('TARGET ELIMINIEREN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF2D55),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              onPressed: () => _showCatchDialog(players, pos),
+                              child: const Text(
+                                  'ELIMINATE TARGET',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
-                        FloatingActionButton(
-                          heroTag: 'center',
-                          backgroundColor: const Color(0xFF1C1C1E),
-                          foregroundColor: Colors.white,
-                          onPressed: () {
+                        _TechFab(
+                          icon: Icons.my_location,
+                          color: Colors.white,
+                          onTap: () {
                             _mapController.move(ll.LatLng(pos.latitude, pos.longitude), 17);
                           },
-                          child: const Icon(Icons.my_location),
                         ),
                       ],
                     ),
@@ -228,25 +241,10 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildStatusChip({required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
-      ),
-    );
-  }
-
   List<Marker> _buildMarkers(List<GamePlayer> players, Position myPos) {
     final markers = <Marker>[];
     for (final player in players) {
-      if(player.isEliminated) continue; // Eliminierte Spieler ausblenden?
+      if(player.isEliminated) continue;
 
       final latLng = ll.LatLng(player.lastPosition.latitude, player.lastPosition.longitude);
       final isHunter = player.isHunter;
@@ -255,7 +253,7 @@ class _MapScreenState extends State<MapScreen> {
       markers.add(
         Marker(
           width: 50,
-          height: 50,
+          height: 60,
           point: latLng,
           child: Column(
             children: [
@@ -265,20 +263,27 @@ class _MapScreenState extends State<MapScreen> {
                     color: Colors.black,
                     border: Border.all(color: color, width: 2),
                     boxShadow: [
-                      BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 10, spreadRadius: 2)
+                      BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1)
                     ]
                 ),
                 padding: const EdgeInsets.all(6),
                 child: Icon(
                   isHunter ? Icons.gavel : Icons.directions_run,
                   color: color,
-                  size: 20,
+                  size: 18,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                  player.displayName,
-                  style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 2, color: Colors.black)])
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                    player.displayName,
+                    style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)
+                ),
               ),
             ],
           ),
@@ -295,13 +300,79 @@ class _MapScreenState extends State<MapScreen> {
         child: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.blue.withValues(alpha: 0.2),
+            color: Colors.blue.withValues(alpha: 0.15),
             border: Border.all(color: Colors.blueAccent, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.3), blurRadius: 10)
+            ],
           ),
-          child: const Icon(Icons.navigation, color: Colors.blueAccent),
+          child: const Icon(Icons.navigation, color: Colors.blueAccent, size: 24),
         ),
       ),
     );
     return markers;
+  }
+}
+
+class _StatusCounter extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _StatusCounter({required this.label, required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 8),
+        Text(
+          "$count $label",
+          style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 1
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TechFab extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  const _TechFab({required this.icon, required this.color, this.onTap, this.isLoading = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: isLoading
+                ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: color, strokeWidth: 2))
+                : Icon(icon, color: color),
+          ),
+        ),
+      ),
+    );
   }
 }

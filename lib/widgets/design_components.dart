@@ -1,6 +1,7 @@
+// lib/widgets/design_components.dart
 import 'package:flutter/material.dart';
 
-/// Der einheitliche dunkle Hintergrund mit Verlauf für alle Screens
+// Der einheitliche dunkle Hintergrund mit dem leichten Verlauf wie im LobbyScreen
 class ScreenBackground extends StatelessWidget {
   final Widget child;
   const ScreenBackground({super.key, required this.child});
@@ -20,7 +21,7 @@ class ScreenBackground extends StatelessWidget {
   }
 }
 
-/// Eine wiederverwendbare "Tech-Card" für Listen-Elemente und Container
+// Eine "Tech-Card" für Listen-Elemente (wie im LobbyScreen StatCard)
 class TechCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -42,7 +43,7 @@ class TechCard extends StatelessWidget {
       child: Container(
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1E), // Surface Color
+          color: const Color(0xFF1C1C1E), // Surface Color aus main.dart
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: borderColor ?? Colors.white.withValues(alpha: 0.05),
@@ -62,7 +63,7 @@ class TechCard extends StatelessWidget {
   }
 }
 
-/// Einheitlicher Header für alle Sub-Screens
+// Einheitlicher Header für alle Sub-Screens
 class ScreenHeader extends StatelessWidget {
   final String title;
   final String subtitle;

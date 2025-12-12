@@ -218,7 +218,7 @@ class _AuthHeader extends StatelessWidget {
         Text(
           'ACCESS TERMINAL',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontWeight: FontWeight.bold,
             letterSpacing: 2,
             fontSize: 12,
@@ -243,8 +243,8 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.error.withOpacity(0.1),
-        border: Border.all(color: theme.colorScheme.error.withOpacity(0.5)),
+        color: theme.colorScheme.error.withValues(alpha: 0.1),
+        border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -288,7 +288,7 @@ class _AuthTabs extends StatelessWidget {
             color: primaryColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              BoxShadow(color: primaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))
+              BoxShadow(color: primaryColor.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))
             ]
         ),
         labelColor: Colors.white,
@@ -343,8 +343,8 @@ class _GuestAccessButton extends StatelessWidget {
       icon: const Icon(Icons.visibility_off),
       label: const Text('GAST ZUGANG'),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white.withOpacity(0.7),
-        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        foregroundColor: Colors.white.withValues(alpha: 0.7),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -361,7 +361,7 @@ class _FooterNote extends StatelessWidget {
       child: Text(
         "SECURE CONNECTION ESTABLISHED",
         style: TextStyle(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           fontSize: 10,
           letterSpacing: 1,
         ),

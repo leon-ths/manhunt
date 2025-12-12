@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:manhunt/widgets/design_components.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
@@ -11,65 +12,70 @@ class LeaderboardScreen extends StatelessWidget {
         .orderBy('wins', descending: true)
         .limit(20)
         .snapshots();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Leaderboard'),
+
+    return ScreenBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true,
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: stream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator.adaptive());
-          }
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
-            return const _AuroraEmptyState(message: 'Noch keine Statistiken.');
-          }
-          return _AuroraBackground(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 32, 16, 32),
-              itemCount: docs.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final data = docs[index].data();
-                final name = data['username'] ?? 'Spieler';
-                final wins = data['wins'] ?? 0;
-                final meters = (data['distanceMeters'] ?? 0).toDouble();
-                return _LeaderboardTile(
-                  rank: index + 1,
-                  username: name,
-                  wins: wins,
-                  meters: meters,
-                  highlight: index < 3,
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          toolbarHeight: 0, // Header wird im Body gerendert
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.0),
+                child: SizedBox(
+                    width: double.infinity,
+                    child: ScreenHeader(title: 'RANKING', subtitle: 'TOP AGENTS')
+                ),
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: stream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return const Center(
+                        child: Text(
+                            'NO DATA AVAILABLE',
+                            style: TextStyle(color: Colors.white24, letterSpacing: 2)
+                        ),
+                      );
+                    }
 
-class _AuroraBackground extends StatelessWidget {
-  const _AuroraBackground({required this.child});
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      itemCount: docs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final data = docs[index].data();
+                        final name = data['username'] ?? 'Unknown Agent';
+                        final wins = data['wins'] ?? 0;
+                        final meters = (data['distanceMeters'] ?? 0).toDouble();
 
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF0B051A), Color(0xFF160A34), Color(0xFF031125)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+                        return _LeaderboardTile(
+                          rank: index + 1,
+                          username: name,
+                          wins: wins,
+                          meters: meters,
+                          highlight: index < 3,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: child,
     );
   }
 }
@@ -91,70 +97,59 @@ class _LeaderboardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradient = highlight
-        ? const LinearGradient(colors: [Color(0xFFFF5F6D), Color(0xFF7A3EFD)])
-        : const LinearGradient(colors: [Color(0xFF1F1C2C), Color(0xFF302B63)]);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: gradient,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+    final primary = Theme.of(context).colorScheme.primary;
+    // Top 3 erhalten die Primärfarbe (Neon Pink), der Rest dezentes Weiß
+    final rankColor = highlight ? primary : Colors.white54;
+
+    return TechCard(
+      // Top 3 bekommen einen dezenten farbigen Rand
+      borderColor: highlight ? primary.withValues(alpha: 0.3) : null,
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.white.withOpacity(0.15),
-            child: Text('$rank', style: const TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(
+            width: 40,
+            child: Text(
+              "#$rank",
+              style: TextStyle(
+                color: rankColor,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  username,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    username,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.5
+                    )
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Siege: $wins · ${meters.toStringAsFixed(0)} m',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                    "$wins WINS  •  ${meters.toInt()} M",
+                    style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.bold
+                    )
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: Colors.white70),
+          if (highlight)
+            Icon(Icons.emoji_events, color: primary, size: 20)
+          else
+            const Icon(Icons.shield_outlined, color: Colors.white24, size: 18),
         ],
-      ),
-    );
-  }
-}
-
-class _AuroraEmptyState extends StatelessWidget {
-  const _AuroraEmptyState({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return _AuroraBackground(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.auto_graph_rounded, size: 48, color: Colors.white30),
-            const SizedBox(height: 16),
-            Text(message, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
       ),
     );
   }
