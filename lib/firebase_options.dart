@@ -18,19 +18,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCb97pMDvmzpNeqItwok0WQMrN5KTCyV08',
-    appId: '1:691523602914:android:b2bff2a89ed2d1620f11bb',
-    messagingSenderId: '691523602914',
-    projectId: 'reallifemanhunt-8d625',
-    storageBucket: 'reallifemanhunt-8d625.firebasestorage.app',
+    apiKey: '*',
+    appId: '*',
+    messagingSenderId: '*',
+    projectId: '*',
+    storageBucket: '*',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCH4m6psp8hitZQIvYngsi7MU0gbBJTFS0',
-    appId: '1:691523602914:ios:97a838f47ce58ca90f11bb',
-    messagingSenderId: '691523602914',
-    projectId: 'reallifemanhunt-8d625',
-    storageBucket: 'reallifemanhunt-8d625.firebasestorage.app',
-    iosBundleId: 'cloud.tonhaeuser.manhunt',
+    apiKey: '*',
+    appId: '*',
+    messagingSenderId: '*',
+    projectId: '*',
+    storageBucket: '*',
+    iosBundleId: '*',
   );
 }
